@@ -82,7 +82,7 @@ sub civbonuses {
 }
 
 sub line_end {
-	return "\n";
+	return "<br>\n";
 }
 
 sub table_tab {
@@ -94,7 +94,7 @@ sub table_startline {
 }
 
 sub table_endline {
-	return "</td></tr>" . line_end();
+	return "</td></tr>";
 }
 
 sub table_start {
@@ -133,12 +133,21 @@ my $fd;
 
 open($fd, '>', 'docs/index.html');
 
+my $prev_letter = "a";
+
 foreach my $lang (sort (@languages)) {
 
-	print $fd h3 . "<a href='$lang.html'>$lang</a>" . h3_end . line_end . line_end;
+	if (substr($lang, 0, 1) ne $prev_letter) {
+		$prev_letter = substr($lang, 0, 1);
+		print $fd line_end . line_end;
+	}
+
+	print $fd " | <a href='$lang.html'>$lang</a>";
 }
 
 close($fd);
+
+exit;
 
 foreach my $lang (sort (@languages)) {
 
