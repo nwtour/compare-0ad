@@ -5,9 +5,18 @@ use XML::LibXML::Reader;
 use File::Slurp qw(read_file);
 use JSON qw(from_json);
 use List::Util qw(uniq);
- 
+use Getopt::Long;
+
+my $only_lang = "";
+
+GetOptions("lang=s"   => \$only_lang); 
+
+
 sub translate {
 	my ($string, $lang, $context) = @_;
+
+	return $string if $lang eq 'en';
+
 	my @lines;
 
 	foreach my $cf (
@@ -129,6 +138,8 @@ sub h2_end {
 
 my @languages = map { /l10n\/(.+)\.public-tutorials/; $1 } grep { -f $_ } glob("binaries/data/mods/public/l10n/*.public-tutorials.po");
 
+push @languages, 'en';
+
 my $fd;
 
 open($fd, '>', 'docs/index.html');
@@ -147,9 +158,9 @@ foreach my $lang (sort (@languages)) {
 
 close($fd);
 
-exit;
-
 foreach my $lang (sort (@languages)) {
+
+	next if $only_lang && $lang ne $only_lang;
 
 	open($fd, '>', "docs/$lang.html");
 
@@ -166,16 +177,16 @@ foreach my $lang (sort (@languages)) {
 	}
 
 	my $resources = {
-		'Food'   => { name => translate('Food', $lang, 'food.json'), sym => '🥩' },
-                'Wood'   => { name => translate('Wood', $lang, 'wood.json'), sym => '🪓' },
-                'Metal'  => { name => translate('Metal', $lang, 'metal.json'),sym => '⛏️'  },
-                'Stone'  => { name => translate('Stone', $lang, 'stone.json'),sym => '🧱' },
-		'Time'  => { name => substr(translate("Remaining build time:", $lang, 'tooltips.js'), 0, -1), sym => '⌚' },
-		'Health' => { name => translate('Health', $lang, 'tooltips.js'), sym => '❤️' },
-		'Pop'    => { name => substr(translate("Population Bonus:", $lang, 'tooltips.js'), 0, -1), sym => '🧑‍🤝‍🧑' }
+		'Food'   => { seq => 2, name => translate('Food', $lang, 'food.json'), sym => '🥩' },
+                'Wood'   => { seq => 3, name => translate('Wood', $lang, 'wood.json'), sym => '🪓' },
+                'Metal'  => { seq => 4, name => translate('Metal', $lang, 'metal.json'),sym => '⛏️'  },
+                'Stone'  => { seq => 5, name => translate('Stone', $lang, 'stone.json'),sym => '🧱' },
+		'Time'   => { seq => 6, name => substr(translate("Remaining build time:", $lang, 'tooltips.js'), 0, -1), sym => '⌚' },
+		'Health' => { seq => 1, name => translate('Health', $lang, 'tooltips.js'), sym => '❤️' },
+		'Pop'    => { seq => 7, name => substr(translate("Population Bonus:", $lang, 'tooltips.js'), 0, -1), sym => '🧑‍🤝‍🧑' }
 	};
 
-	foreach my $r (keys %$resources) {
+	foreach my $r (sort { $resources->{$a}{seq} <=> $resources->{$b}{seq} } keys %$resources) {
 		print $fd $resources->{$r}{name} . " = " . $resources->{$r}{sym} . ", ";
 	}
 	print $fd line_end . line_end;
