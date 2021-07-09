@@ -6,11 +6,12 @@ use File::Slurp qw(read_file);
 use JSON qw(from_json);
 use List::Util qw(uniq);
 use Getopt::Long;
+use File::Spec::Functions qw(catfile);
 
 my $only_lang = "";
+my $doc_dir = "docs";
 
-GetOptions("lang=s"   => \$only_lang); 
-
+GetOptions("docdir=s" => \$doc_dir, "lang=s" => \$only_lang);
 
 sub translate {
 	my ($string, $lang, $context) = @_;
@@ -40,7 +41,7 @@ sub translate {
 		}
 		$i++;
 	}
-	warn "NOT FOUND $string\n";
+	warn "($lang) NOT FOUND $string\n";
 	return $string;
 }
 
@@ -116,6 +117,7 @@ sub table_end {
 
 sub icon {
 	my $name = shift;
+
 	return "<img src='https://raw.githubusercontent.com/0ad/0ad/master/binaries/data/mods/public/art/textures/ui/session/portraits/structures/" .
 		lc($name) . ".png' width='20' height='20'>";
 }
@@ -142,11 +144,13 @@ push @languages, 'en';
 
 my $fd;
 
-open($fd, '>', 'docs/index.html');
+open($fd, '>', catfile ($doc_dir, 'index.html'));
 
 my $prev_letter = "a";
 
 foreach my $lang (sort (@languages)) {
+
+	next if $lang eq 'long';
 
 	if (substr($lang, 0, 1) ne $prev_letter) {
 		$prev_letter = substr($lang, 0, 1);
@@ -162,7 +166,7 @@ foreach my $lang (sort (@languages)) {
 
 	next if $only_lang && $lang ne $only_lang;
 
-	open($fd, '>', "docs/$lang.html");
+	open ($fd, '>', catfile ($doc_dir, "$lang.html"));
 
 	print $fd h2 . '<a href="index.html">[index]</a>/' . $lang . '.html' . h2_end . line_end . line_end;
 
@@ -208,10 +212,16 @@ foreach my $lang (sort (@languages)) {
 
 		my $en_name = get_xml_value("simulation/templates/$template", 'Entity', 'Identity', 'GenericName');
 
+		my $en_filename = $template;
+		$en_filename =~ s/^template_structure_([a-z]+)_(.+)\.xml/$2/;
+
+		# Workarround
+		$en_filename = 'civic_centre' if $en_filename eq 'civil_centre';
+
 		print $fd table_startline .
 			translate('Civilization', $lang, 'DiplomacyDialog.xml') .
 			table_tab .
-			h3 . icon($en_name) . translate($en_name, $lang, $template) . h3_end .
+			h3 . icon($en_filename) . translate($en_name, $lang, $template) . h3_end .
 			table_endline;
 
 		foreach my $f (sort keys %fraction) {
